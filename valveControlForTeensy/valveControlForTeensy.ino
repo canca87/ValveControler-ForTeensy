@@ -113,6 +113,11 @@ void loop() {
  *                  245a
  *  where the letter at the end represents the command character
  *  
+ *  Addition: can now send up to 5 values to the teensy using CSV data. EG:
+ *              24443,556,3d
+ *  This command sent to the PC will save values 24443, 556 and 3 to a numberic array 'val'
+ *  previously, val was just a single static int, now it is an int array.
+ *  
  *  There are three main command characters:
  *  a : actiaves the valves using the entered number (number converted to binary)
  *  d : sets the valve delay time
@@ -120,17 +125,24 @@ void loop() {
  */
 void serviceSerial(void)
 {
-  static int val = 0; //variable to store the input character
+  static int val[5] = 0; //variable to store the input character
+  static byte valNum = 0; //default is val ZERO
   if ( Serial.available()){ //if there is data avaliable
     char ch = Serial.read(); //read the character
     if(ch >= '0' && ch <= '9') // is it a number?
     {
-      val = val * 10 + ch - '0'; // yes, accumulate the value
+      val[valNum] = val[valNum] * 10 + ch - '0'; // yes, accumulate the value
+    }
+    else if(ch == ','){ //if it is a comma, increment the valNum variable
+      //just check first that the valNum will not be an illegal value!
+      if (valNum < 4){
+        valNum ++; //increment it
+      }
     }
     else if(ch == 'a'){ //activate the valves using the given number
       if (val > 255){ //check to see if the input number is for a valid number of valves (8 valves = 8 bit = 255)
         Serial.println("Invalid valve combination"); //if the number is invalid, alert the user
-        val = 0; // reset the serial number accumulator
+        val = {0,0,0,0,0}; // reset the serial number accumulator
       }
       else{ //the value is okay, activate the valves
         //check if a delay is needed
@@ -147,7 +159,7 @@ void serviceSerial(void)
           //valves will be turned off automatically
           _valveAutoOffTimer.begin(_allValvesOff, _offTime); //start the valve off timer
         }
-        val = 0; // reset the serial number accumulator  
+        val = {0,0,0,0,0}; // reset the serial number accumulator
       }
     }
     else if(ch == 'd'){ //delay time adjustment
@@ -160,7 +172,7 @@ void serviceSerial(void)
       else{
         Serial.println("Delay time too long");
       }
-      val = 0; // reset the serial number accumulator  
+      val = {0,0,0,0,0}; // reset the serial number accumulator
     }
     else if(ch == 'o'){ //change the auto off time
       if (val < 10000000){ //arbitrary upper limit to the delay is 10 seconds
@@ -172,12 +184,22 @@ void serviceSerial(void)
       else{
         Serial.println("Auto OFF time too long");
       }
-      val = 0; // reset the serial number accumulator  
+      val = {0,0,0,0,0}; // reset the serial number accumulator
+    }
+    else if(ch == 'f'){
+      //two value example
+      unsigned long FrameTime = val[0];
+      byte ValveState = val[1];
+      val = {0,0,0,0,0}; // reset the serial number accumulator
+      Serial.print("Frame time: ");
+      Serial.println(FrameTime);
+      Serial.print("Valve state:");
+      Serial.println(ValveState);
     }
     else{
       Serial.println("Unknown command...");
       Serial.println("Resetting the accumulator.");
-      val = 0; // reset the serial number accumulator 
+      val = {0,0,0,0,0}; // reset the serial number accumulator
     }
   }
 }
