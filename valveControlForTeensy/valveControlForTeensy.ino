@@ -125,7 +125,7 @@ void loop() {
  */
 void serviceSerial(void)
 {
-  static int val[5] = 0; //variable to store the input character
+  static long val[5] = {0}; //variable to store the input character
   static byte valNum = 0; //default is val ZERO
   if ( Serial.available()){ //if there is data avaliable
     char ch = Serial.read(); //read the character
@@ -140,18 +140,19 @@ void serviceSerial(void)
       }
     }
     else if(ch == 'a'){ //activate the valves using the given number
-      if (val > 255){ //check to see if the input number is for a valid number of valves (8 valves = 8 bit = 255)
+      if (val[0] > 255){ //check to see if the input number is for a valid number of valves (8 valves = 8 bit = 255)
         Serial.println("Invalid valve combination"); //if the number is invalid, alert the user
-        val = {0,0,0,0,0}; // reset the serial number accumulator
+        val[5] = {0}; // reset the serial number accumulator
+        valNum = 0;
       }
       else{ //the value is okay, activate the valves
         //check if a delay is needed
         if (_delayTime == 0){ //no delay needed
-          activateValves(val); //activate the valves
+          activateValves((byte)val[0]); //activate the valves
         }
         else{
           //start the valves using a delay (global delay for now)
-          _delayValves = val; //store the valve states in a buffer
+          _delayValves = (byte)val[0]; //store the valve states in a buffer
           _valveOnDelayTimer.begin(_delayActivateValves, _delayTime); //actiave the valves delay timer
         }
         //now determine if the valves will be turned off automatically
@@ -159,12 +160,13 @@ void serviceSerial(void)
           //valves will be turned off automatically
           _valveAutoOffTimer.begin(_allValvesOff, _offTime); //start the valve off timer
         }
-        val = {0,0,0,0,0}; // reset the serial number accumulator
+        val[5] = {0}; // reset the serial number accumulator
+        valNum = 0;
       }
     }
     else if(ch == 'd'){ //delay time adjustment
-      if (val < 10000000){ //arbitrary upper limit to the delay is 10 seconds
-        _delayTime = val;
+      if (val[0] < 10000000){ //arbitrary upper limit to the delay is 10 seconds
+        _delayTime = (int)val[0];
         Serial.print("Set a delay time of ");
         Serial.print(_delayTime);
         Serial.println(" microseconds");
@@ -172,11 +174,12 @@ void serviceSerial(void)
       else{
         Serial.println("Delay time too long");
       }
-      val = {0,0,0,0,0}; // reset the serial number accumulator
+      val[5] = {0}; // reset the serial number accumulator
+      valNum = 0;
     }
     else if(ch == 'o'){ //change the auto off time
-      if (val < 10000000){ //arbitrary upper limit to the delay is 10 seconds
-        _offTime = val;
+      if (val[0] < 10000000){ //arbitrary upper limit to the delay is 10 seconds
+        _offTime = (int)val[0];
         Serial.print("Set an auto OFF time of ");
         Serial.print(_offTime);
         Serial.println(" microseconds");
@@ -184,13 +187,14 @@ void serviceSerial(void)
       else{
         Serial.println("Auto OFF time too long");
       }
-      val = {0,0,0,0,0}; // reset the serial number accumulator
+      val[5] = {0}; // reset the serial number accumulator
+      valNum = 0;
     }
     else if(ch == 'f'){
       //two value example
-      unsigned long FrameTime = val[0];
-      byte ValveState = val[1];
-      val = {0,0,0,0,0}; // reset the serial number accumulator
+      unsigned long FrameTime = (long)val[0];
+      byte ValveState = (int)val[1];
+      val[5] = {0}; // reset the serial number accumulator
       Serial.print("Frame time: ");
       Serial.println(FrameTime);
       Serial.print("Valve state:");
@@ -199,7 +203,8 @@ void serviceSerial(void)
     else{
       Serial.println("Unknown command...");
       Serial.println("Resetting the accumulator.");
-      val = {0,0,0,0,0}; // reset the serial number accumulator
+      val[5] = {0}; // reset the serial number accumulator
+      valNum = 0;
     }
   }
 }
